@@ -31,5 +31,33 @@ df_mode$person_education[is.na(df_mode$person_education)] <- mode_val
 #mising value
 print(sum(is.na(df_mode)))
 
+#plot missing data
+vis_miss(data)
 
 
+#detect outlier
+
+
+
+
+#numeric to categorical
+
+df_mode$loan_status <-ifelse(df_mode$loan_status == 1 ,"Yes","No");
+
+
+#categorical to numeric
+
+df_mode$previous_loan_defaults_on_file <- ifelse(df_mode$previous_loan_defaults_on_file == "Yes", 1,0);
+
+
+# normalization method for any continuous attribute. 
+
+df<-df_mode
+
+df$person_income<-(df$person_income -min(df$person_income))/(max(df$person_income)-min(df$person_income))
+
+
+#find and remove duplicate rows.  
+
+duplicates<-df[duplicated(df),]
+df_unique <- df[!duplicated(df),]
