@@ -44,7 +44,7 @@ vis_miss(data)
 
 
 
-#################################################   5
+#################################################   3
 #numeric to categorical
 
 df_mode$loan_status <-ifelse(df_mode$loan_status == 1 ,"Yes","No");
