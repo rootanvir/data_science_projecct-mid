@@ -2,6 +2,7 @@ library(readxl)
 library(modeest)
 library(naniar)
 library(dplyr)
+library(rsample)
 
 data <- read_excel("D:/data science project-mid/data/Midterm_Dataset_Section(A).xlsx")
 
@@ -146,6 +147,103 @@ df_unique <- distinct(df, person_education  ,.keep_all = TRUE)
 
 
 
+
+############################################### 7
+
+df_filtered <- filter(df, person_age > 25)
+
+##############################################  8
+
+
+
+
+
+
+############################################## 9
+
+set.seed(123)
+
+# Make target a factor
+df$loan_status <- as.factor(df$loan_status)
+
+# See imbalance
+table(df$loan_status)
+prop.table(table(df$loan_status))
+
+
+#  Undersampling
+
+
+x <- df[ , setdiff(names(df), "loan_status")]
+y <- df$loan_status
+
+df_under <- downSample(x = x, y = y, yname = "loan_status")
+
+table(df_under$loan_status)
+prop.table(table(df_under$loan_status))
+
+# Oversampling
+x <- df[ , setdiff(names(df), "loan_status")]
+y <- df$loan_status
+
+df_over <- upSample(x = x, y = y, yname = "loan_status")
+
+table(df_over$loan_status)
+prop.table(table(df_over$loan_status))
+
+# One of these should work on your system:
+# install.packages("DMwR")   # older CRAN
+# install.packages("DMwR2")  # alternative
+lib <- if (requireNamespace("DMwR", quietly=TRUE)) "DMwR" else "DMwR2"
+library(lib, character.only = TRUE)
+
+# perc.over: % increase of minority; perc.under: % of majority after oversampling
+df_smote <- SMOTE(loan_status ~ ., data = df, perc.over = 200, perc.under = 100)
+
+table(df_smote$loan_status)
+prop.table(table(df_smote$loan_status))
+
+
+
+
+
+###########################################  10
+
+
+
+set.seed(123)
+split <- initial_split(df, prop = 0.7)   # 70% train, 30% test
+
+train_data <- training(split)
+test_data  <- testing(split)
+
+############################################ 11
+# Create summary table for Age 
+# y ~ x “y depends on x”
+
+
+
+age_summary <- aggregate(person_age ~ loan_status, data = df,
+                         FUN = function(x) c(mean = mean(x), median = median(x),
+                                             sd = sd(x), min = min(x), max = max(x)))
+age_summary <- do.call(data.frame, age_summary)
+
+# Create summary table for Income
+income_summary <- aggregate(person_income ~ loan_status, data = df,
+                            FUN = function(x) c(mean = mean(x), median = median(x),
+                                                sd = sd(x), min = min(x), max = max(x)))
+income_summary <- do.call(data.frame, income_summary)
+
+# Print results
+print(age_summary)
+print(income_summary)
+
+############################################################### 12
+
+
+aggregate(credit_score ~ loan_status, data = df, FUN = function(x) round(mean(x, na.rm=TRUE), 2))
+
+
 ################################################################ 13
 
 
@@ -171,6 +269,8 @@ compare_spread <- function(data, group_col, value_col) {
     )
 }
 
-compare <- compare_spread(df, "person_education", "person_emp_exp")
+# Compare mean credit score between loan_status groups
+aggregate(credit_score ~ loan_status, data = data, mean, na.rm = TRUE)
+compare <- compare_spread(data, "person_education", "person_emp_exp")
 
 
