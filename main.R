@@ -1,6 +1,7 @@
 library(readxl)
 library(modeest)
 library(naniar)
+library(dplyr)
 
 data <- read_excel("D:/data science project-mid/data/Midterm_Dataset_Section(A).xlsx")
 
@@ -124,6 +125,25 @@ outlier_detect<-detect_outliers(df, "person_age")
 
 # Fix and get cleaned dataset
 df_clean <- fix_outliers(df, "person_age")
+
+
+#################################################### 5 
+
+df_nor <- df
+
+normalize <- function(x) {
+  return( (x - min(x)) / (max(x) - min(x)) )
+}
+
+df_nor$loan_amnt <- normalize(df_nor$loan_amnt)
+
+
+############################################## 6
+
+df_unique <- df
+
+df_unique <- distinct(df, person_education  ,.keep_all = TRUE)
+
 
 
 ################################################################ 13
