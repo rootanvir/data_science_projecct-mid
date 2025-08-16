@@ -4,6 +4,9 @@ library(naniar)
 
 data <- read_excel("D:/data science project-mid/data/Midterm_Dataset_Section(A).xlsx")
 
+
+
+###########################################################   1
 missing_rows <- data[!complete.cases(data), ]#find missing row
 print(missing_rows)
 
@@ -31,12 +34,17 @@ df_mode$person_education[is.na(df_mode$person_education)] <- mode_val
 #mising value
 print(sum(is.na(df_mode)))
 
+
+
+
+#################################################  2
+
 #plot missing data
 vis_miss(data)
 
 
 
-
+#################################################   5
 #numeric to categorical
 
 df_mode$loan_status <-ifelse(df_mode$loan_status == 1 ,"Yes","No");
@@ -45,6 +53,9 @@ df_mode$loan_status <-ifelse(df_mode$loan_status == 1 ,"Yes","No");
 #categorical to numeric
 
 df_mode$previous_loan_defaults_on_file <- ifelse(df_mode$previous_loan_defaults_on_file == "Yes", 1,0);
+
+###################################################   4
+
 
 
 # Detect Outlier
@@ -58,6 +69,9 @@ detect_outliers <- function(data, colname) {
   Q1 <- quantile(data[[colname]], 0.25, na.rm = TRUE)
   Q3 <- quantile(data[[colname]], 0.75, na.rm = TRUE)
   IQR <- Q3 - Q1
+  print(paste("IQR:",Q1," ",Q3))
+  
+  
   lower <- Q1 - 1.5 * IQR
   upper <- Q3 + 1.5 * IQR
   
@@ -70,7 +84,7 @@ detect_outliers <- function(data, colname) {
   return(
     data.frame(
       value = data[[colname]],
-      isOutlier = is_outlier
+      isOutlier = s_outlieri
     )
   )
 }
@@ -85,6 +99,7 @@ fix_outliers <- function(data, colname) {
   Q1 <- quantile(data[[colname]], 0.25, na.rm = TRUE)
   Q3 <- quantile(data[[colname]], 0.75, na.rm = TRUE)
   IQR <- Q3 - Q1
+  
   lower <- Q1 - 1.5 * IQR
   upper <- Q3 + 1.5 * IQR
   
@@ -109,6 +124,10 @@ outlier_detect<-detect_outliers(df, "person_age")
 
 # Fix and get cleaned dataset
 df_clean <- fix_outliers(df, "person_age")
+
+
+################################################################ 13
+
 
 
 
