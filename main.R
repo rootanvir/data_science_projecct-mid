@@ -155,6 +155,54 @@ df_filtered <- filter(df, person_age > 25)
 
 
 
+## --- Drop-all-NA rows version (like your loans5) ---
+df_omit <- na.omit(df)
+print(nrow(df_omit))
+print(df_omit)
+
+## --- Impute-NA version (like your loan5) ---
+df_imp <- df
+
+# numeric -> mean impute
+num_cols <- sapply(df_imp, is.numeric)
+
+for (nm in names(df_imp)[num_cols]) {
+  m <- mean(df_imp[[nm]], na.rm = TRUE)
+  if (is.nan(m)) m <- 0                 # fallback if entire column is NA
+  nas <- is.na(df_imp[[nm]])
+  if (any(nas)) df_imp[[nm]][nas] <- m
+}
+
+# categorical (character OR factor) -> mode (most frequent) impute
+cat_cols <- sapply(df_imp, function(x) is.character(x) || is.factor(x))
+
+mode_val <- function(x) {
+  tb <- table(x, useNA = "no")
+  if (length(tb) == 0) return("Unknown")
+  names(tb)[which.max(tb)]
+}
+
+for (nm in names(df_imp)[cat_cols]) {
+  x <- df_imp[[nm]]
+  nas <- is.na(x)
+  if (!any(nas)) next
+  mv <- mode_val(x)
+  if (is.factor(x)) {
+    # ensure the mode exists as a level
+    if (!(mv %in% levels(x))) levels(x) <- c(levels(x), mv)
+    x[nas] <- mv
+    df_imp[[nm]] <- droplevels(x)
+  } else {
+    x[nas] <- mv
+    df_imp[[nm]] <- as.factor(x)  # keep as factor for modeling
+  }
+}
+
+# NA check summaries (like your prints)
+print(colSums(is.na(df_imp[num_cols, drop = FALSE])))
+print(colSums(is.na(df_imp[cat_cols, drop = FALSE])))
+
+print(df_imp)
 
 
 
@@ -182,30 +230,28 @@ df<-df_mode
 #smote
 
 
-# install.packages("ROSE")  # run once if needed
+
+
+df<-df_clean
+
+df$previous_loan_defaults_on_file <- ifelse(df$previous_loan_defaults_on_file == "Yes", 1,0);
+
+
+
 library(ROSE)
 
-# Target as factor
-df$previous_loan_defaults_on_file <- as.factor(df$previous_loan_defaults_on_file)
+# Use ONLY the target; leave all other columns exactly as they are
+df$previous_loan_defaults_on_file <- factor(df$previous_loan_defaults_on_file, levels = c(0,1))
 
-# Convert character predictors to factor (ROSE only accepts numeric/factor)
-char_cols <- names(Filter(is.character, df))
-df[char_cols] <- lapply(df[char_cols], factor)
-
-# (optional) drop rows with NAs
-df2 <- df[complete.cases(df), ]
-
-# BEFORE
-table(df2$previous_loan_defaults_on_file)
-head(df2)
-
-# Balance with ROSE (total N = 2000, 50/50 split)
 set.seed(199)
-rose_prev <- ROSE(previous_loan_defaults_on_file ~ ., data = df2, N = 2000, p = 0.5)$data
 
-# AFTER
-table(rose_prev$previous_loan_defaults_on_file)
-head(rose_prev)
+# Balance to 50/50 with total N = 2000 by duplicating/dropping rows only
+balanced_df <- ovun.sample(previous_loan_defaults_on_file ~ ., data = df,
+                           method = "both", N = 2000, p = 0.5, seed = 199)$data
+
+# Check result
+table(balanced_df$previous_loan_defaults_on_file)
+head(balanced_df)
 
 
 
