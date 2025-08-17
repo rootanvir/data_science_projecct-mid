@@ -3,6 +3,8 @@ library(modeest)
 library(naniar)
 library(dplyr)
 library(rsample)
+library(ROSE)
+library(smotefamily)
 
 data <- read_excel("D:/data science project-mid/data/Midterm_Dataset_Section(A).xlsx")
 
@@ -10,22 +12,25 @@ data <- read_excel("D:/data science project-mid/data/Midterm_Dataset_Section(A).
 
 ###########################################################   1
 missing_rows <- data[!complete.cases(data), ]#find missing row
-print(missing_rows)
+head(missing_rows)
 
 drop_data <- na.omit(data);#drop missing data
-print(drop_data);
+head(drop_data);
 
 df_mean <-data#replace by mean
 df_mean$person_income[is.na(df_mean$person_income)] <- mean(df_mean$person_income,na.rm=TRUE);
+head(df_mean)
 
 df_median <- df_mean#replace by median
 df_median$person_age[is.na(df_median$person_age)] <- median(df_median$person_age,na.rm = TRUE);
+head(df_median)
 
 
 #mode
 df_mode <- df_median
 mode_val <- mlv(df_mode$loan_status,method = "mfv",na.rm = TRUE);
 df_mode$loan_status[is.na(df_mode$loan_status)] <- mode_val
+head(as.data.frame(df_mode))
 
 mode_val <- mlv(df_mode$person_gender,method = "mfv",na.rm = TRUE);
 df_mode$person_gender[is.na(df_mode$person_gender)] <- mode_val
@@ -50,12 +55,13 @@ vis_miss(data)
 #numeric to categorical
 
 df_mode$loan_status <-ifelse(df_mode$loan_status == 1 ,"Yes","No");
-
+head(as.data.frame(df_mode))
 
 #categorical to numeric
 
 df_mode$previous_loan_defaults_on_file <- ifelse(df_mode$previous_loan_defaults_on_file == "Yes", 1,0);
-
+head(as.data.frame(df_mode))
+df<-df_mode
 ###################################################   4
 
 
@@ -64,32 +70,23 @@ df_mode$previous_loan_defaults_on_file <- ifelse(df_mode$previous_loan_defaults_
 # ------------------------------
 # Function 1: Detect Outliers
 # ------------------------------
-detect_outliers <- function(data, colname) {
+get_outliers <- function(data, colname) {
   if (!colname %in% names(data)) stop("Column not found.")
   if (!is.numeric(data[[colname]])) stop("Column must be numeric.")
   
   Q1 <- quantile(data[[colname]], 0.25, na.rm = TRUE)
   Q3 <- quantile(data[[colname]], 0.75, na.rm = TRUE)
   IQR <- Q3 - Q1
-  print(paste("IQR:",Q1," ",Q3))
-  
   
   lower <- Q1 - 1.5 * IQR
   upper <- Q3 + 1.5 * IQR
   
-  is_outlier <- data[[colname]] < lower | data[[colname]] > upper
-  n_out <- sum(is_outlier, na.rm = TRUE)
+  # return only the outlier values from dataset
+  outliers <- data[[colname]][data[[colname]] < lower | data[[colname]] > upper]
   
-  message(n_out, " outliers found in ", colname)
-  
-  # Return data frame with values + flag
-  return(
-    data.frame(
-      value = data[[colname]],
-      isOutlier = s_outlieri
-    )
-  )
+  return(outliers)
 }
+
 
 # ------------------------------
 # Function 2: Fix Outliers
@@ -122,10 +119,12 @@ fix_outliers <- function(data, colname) {
 df<-df_mode
 
 # Just detect
-outlier_detect<-detect_outliers(df, "person_age")
+outlier_detect<-get_outliers(df, "person_age")
+head(outlier_detect)
 
 # Fix and get cleaned dataset
 df_clean <- fix_outliers(df, "person_age")
+head(as.data.frame(df_clean))
 
 
 #################################################### 5 
@@ -161,47 +160,52 @@ df_filtered <- filter(df, person_age > 25)
 
 ############################################## 9
 
-set.seed(123)
+#undersampling
 
-# Make target a factor
-df$loan_status <- as.factor(df$loan_status)
+under_df <- ovun.sample(loan_status ~ ., data = df, method = "under", N = 201)$data
+table(under_df$loan_status)   # Balanced by undersampling
+head(under_df)
 
-# See imbalance
-table(df$loan_status)
-prop.table(table(df$loan_status))
+#Oversampling
+over_df <- ovun.sample(loan_status ~ ., data = df, method = "over", N = 201)$data
+table(over_df$loan_status)    # Balanced by oversampling
+head(over_df)
 
 
-#  Undersampling
 
 
-x <- df[ , setdiff(names(df), "loan_status")]
-y <- df$loan_status
+df_mode$loan_status <- ifelse(df_mode$loan_status == "Yes", 1,0);
+head(as.data.frame(df_mode))
+df<-df_mode
 
-df_under <- downSample(x = x, y = y, yname = "loan_status")
 
-table(df_under$loan_status)
-prop.table(table(df_under$loan_status))
+#smote
 
-# Oversampling
-x <- df[ , setdiff(names(df), "loan_status")]
-y <- df$loan_status
 
-df_over <- upSample(x = x, y = y, yname = "loan_status")
+# install.packages("ROSE")  # run once if needed
+library(ROSE)
 
-table(df_over$loan_status)
-prop.table(table(df_over$loan_status))
+# Target as factor
+df$previous_loan_defaults_on_file <- as.factor(df$previous_loan_defaults_on_file)
 
-# One of these should work on your system:
-# install.packages("DMwR")   # older CRAN
-# install.packages("DMwR2")  # alternative
-lib <- if (requireNamespace("DMwR", quietly=TRUE)) "DMwR" else "DMwR2"
-library(lib, character.only = TRUE)
+# Convert character predictors to factor (ROSE only accepts numeric/factor)
+char_cols <- names(Filter(is.character, df))
+df[char_cols] <- lapply(df[char_cols], factor)
 
-# perc.over: % increase of minority; perc.under: % of majority after oversampling
-df_smote <- SMOTE(loan_status ~ ., data = df, perc.over = 200, perc.under = 100)
+# (optional) drop rows with NAs
+df2 <- df[complete.cases(df), ]
 
-table(df_smote$loan_status)
-prop.table(table(df_smote$loan_status))
+# BEFORE
+table(df2$previous_loan_defaults_on_file)
+head(df2)
+
+# Balance with ROSE (total N = 2000, 50/50 split)
+set.seed(199)
+rose_prev <- ROSE(previous_loan_defaults_on_file ~ ., data = df2, N = 2000, p = 0.5)$data
+
+# AFTER
+table(rose_prev$previous_loan_defaults_on_file)
+head(rose_prev)
 
 
 
@@ -269,8 +273,10 @@ compare_spread <- function(data, group_col, value_col) {
     )
 }
 
-# Compare mean credit score between loan_status groups
-aggregate(credit_score ~ loan_status, data = data, mean, na.rm = TRUE)
-compare <- compare_spread(data, "person_education", "person_emp_exp")
 
+
+# Compare mean credit score between loan_status groups
+aggregate(credit_score ~ loan_status, data = data , mean, na.rm = TRUE)
+compare <- compare_spread(df_clean, "person_education", "person_emp_exp")
+head(as.data.frame(compare))
 
