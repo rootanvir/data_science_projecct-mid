@@ -134,70 +134,54 @@ normalize <- function(x) {
 }
 
 df_nor$loan_amnt <- normalize(df_nor$loan_amnt)
+head(df_nor)
 
 
 ############################################## 6
 
 df_unique <- df
 df_unique <- distinct(df, person_education  ,.keep_all = TRUE)
-
+head(as.data.frame(df_unique))
 
 ############################################### 7
 
-df_filtered <- filter(df, person_age > 25)
+filtered_data1 <- filter(df_clean, loan_amnt > 10000)
+head(as.data.frame(filtered_data1))
+
+filtered_data2 <- filter(df_clean, !is.na(person_income) & person_income > 20000)
+head(as.data.frame(filtered_data2))
+
+filtered_data3 <- filter(df_clean, person_education %in% c("Bachelor", "Master"))
+head(as.data.frame(filtered_data3))
 
 ##############################################  8
 
 
+loans5<-data
+loans5 <- na.omit(loans5)
+print(nrow(loans5))
+head(as.data.frame(loans5))
 
-## --- Drop-all-NA rows version (like your loans5) ---
-df_omit <- na.omit(df)
-print(nrow(df_omit))
-print(df_omit)
+loan5 <- data  
+loan3_clean <- na.omit(loan5)
+print(nrow(loan3_clean))
+head(as.data.frame(loan3_clean))
 
-## --- Impute-NA version (like your loan5) ---
-df_imp <- df
 
-# numeric -> mean impute
-num_cols <- sapply(df_imp, is.numeric)
-
-for (nm in names(df_imp)[num_cols]) {
-  m <- mean(df_imp[[nm]], na.rm = TRUE)
-  if (is.nan(m)) m <- 0                 # fallback if entire column is NA
-  nas <- is.na(df_imp[[nm]])
-  if (any(nas)) df_imp[[nm]][nas] <- m
-}
-
-# categorical (character OR factor) -> mode (most frequent) impute
-cat_cols <- sapply(df_imp, function(x) is.character(x) || is.factor(x))
-
-mode_val <- function(x) {
-  tb <- table(x, useNA = "no")
-  if (length(tb) == 0) return("Unknown")
-  names(tb)[which.max(tb)]
-}
-
-for (nm in names(df_imp)[cat_cols]) {
-  x <- df_imp[[nm]]
-  nas <- is.na(x)
-  if (!any(nas)) next
-  mv <- mode_val(x)
-  if (is.factor(x)) {
-    # ensure the mode exists as a level
-    if (!(mv %in% levels(x))) levels(x) <- c(levels(x), mv)
-    x[nas] <- mv
-    df_imp[[nm]] <- droplevels(x)
-  } else {
-    x[nas] <- mv
-    df_imp[[nm]] <- as.factor(x)  # keep as factor for modeling
-  }
-}
-
-# NA check summaries (like your prints)
-print(colSums(is.na(df_imp[num_cols, drop = FALSE])))
-print(colSums(is.na(df_imp[cat_cols, drop = FALSE])))
-
-print(df_imp)
+num_cols <- sapply(loan5, is.numeric)      
+cat_cols <- sapply(loan5, is.character)    
+loan5[num_cols] <- lapply(loan5[num_cols], function(x) {
+  x[is.na(x)] <- mean(x, na.rm = TRUE)  
+  return(x)
+})
+loan5[cat_cols] <- lapply(loan5[cat_cols], function(x) {
+  mode_val <- names(sort(table(x), decreasing = TRUE))[1] 
+  x[is.na(x)] <- mode_val                                 
+  return(x)
+})
+print(colSums(is.na(loan5[num_cols])))
+print(colSums(is.na(loan5[cat_cols])))
+head(as.data.frame(loan5))
 
 
 
