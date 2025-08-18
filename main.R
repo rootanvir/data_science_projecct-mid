@@ -210,45 +210,66 @@ print(df_imp)
 
 #undersampling
 
-under_df <- ovun.sample(loan_status ~ ., data = df, method = "under", N = 201)$data
-table(under_df$loan_status)   # Balanced by undersampling
+df$loan_status <- ifelse(df$loan_status == "Yes", 1,0);
+under_df <- df
+
+
+library(ROSE)
+df$loan_status <- factor(df$loan_status, levels = c(0,1))
+table(df$loan_status)
+N_under <- 2 * min(table(df$loan_status))
+set.seed(199)
+under_df <- ovun.sample(loan_status ~ ., data = df,method = "under", N = N_under, seed = 199)$data
+table(under_df$loan_status)
 head(under_df)
 
+
 #Oversampling
-over_df <- ovun.sample(loan_status ~ ., data = df, method = "over", N = 201)$data
-table(over_df$loan_status)    # Balanced by oversampling
+
+library(ROSE)
+
+df$loan_status <- factor(df$loan_status, levels = c(0,1))
+table(df$loan_status)
+N_over <- 2 * max(table(df$loan_status))
+set.seed(199)
+over_df <- ovun.sample(loan_status ~ ., data = df,
+                       method = "over", N = N_over, seed = 199)$data
+table(over_df$loan_status)
 head(over_df)
 
 
 
 
-df_mode$loan_status <- ifelse(df_mode$loan_status == "Yes", 1,0);
-head(as.data.frame(df_mode))
-df<-df_mode
-
 
 #smote
 
 
-
-
-
-
+df_smote <- df_clean
 
 library(ROSE)
-
-# Use ONLY the target; leave all other columns exactly as they are
-df$previous_loan_defaults_on_file <- factor(df$previous_loan_defaults_on_file, levels = c(0,1))
-
 set.seed(199)
 
-# Balance to 50/50 with total N = 2000 by duplicating/dropping rows only
-balanced_df <- ovun.sample(previous_loan_defaults_on_file ~ ., data = df,
-                           method = "both", N = 2000, p = 0.5, seed = 199)$data
+# ROSE needs factor target and only numeric/factor predictors
+df_smote$previous_loan_defaults_on_file <- factor(df_smote$previous_loan_defaults_on_file, levels = c(0,1))
+df_smote[sapply(df_smote, is.character)] <- lapply(df_smote[sapply(df_smote, is.character)], factor)
+df_smote <- df_smote[complete.cases(df_smote), ]  # optional but safe
 
-# Check result
-table(balanced_df$previous_loan_defaults_on_file)
-head(balanced_df)
+
+table(df_smote$previous_loan_defaults_on_file)
+
+# ROSE balancing (50/50, total N = 2000)
+rose_df <- ROSE(previous_loan_defaults_on_file ~ ., data = df_smote, N = 2000, p = 0.5)$data
+
+
+table(rose_df$previous_loan_defaults_on_file)
+head(rose_df)
+
+
+
+
+
+
+
 
 
 
