@@ -232,9 +232,6 @@ df<-df_mode
 
 
 
-df<-df_clean
-
-df$previous_loan_defaults_on_file <- ifelse(df$previous_loan_defaults_on_file == "Yes", 1,0);
 
 
 
@@ -257,6 +254,20 @@ head(balanced_df)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ###########################################  10
 
 
@@ -266,6 +277,8 @@ split <- initial_split(df, prop = 0.7)   # 70% train, 30% test
 
 train_data <- training(split)
 test_data  <- testing(split)
+dim(train_data)
+dim(test_data)
 
 ############################################ 11
 # Create summary table for Age 
