@@ -3,8 +3,6 @@ library(modeest)
 library(naniar)
 library(dplyr)
 library(rsample)
-library(ROSE)
-library(smotefamily)
 
 data <- read_excel("D:/data science project-mid/data/Midterm_Dataset_Section(A).xlsx")
 
@@ -243,7 +241,6 @@ head(over_df)
 
 #smote
 
-
 df_smote <- df_clean
 
 library(ROSE)
@@ -264,6 +261,51 @@ rose_df <- ROSE(previous_loan_defaults_on_file ~ ., data = df_smote, N = 2000, p
 table(rose_df$previous_loan_defaults_on_file)
 head(rose_df)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Rebuild original categorical columns from dummies, drop the dummies, and
+# show head in the original schema (same columns/order as df_smote)
+
+orig <- names(df_clean)
+cat_vars <- setdiff(orig[sapply(df_smote, function(x) is.factor(x) || is.character(x))],
+                    "previous_loan_defaults_on_file")
+
+pretty_df <- df_clean
+for (v in cat_vars) {
+  d <- grep(paste0("^", v, "_"), names(pretty_df), value = TRUE)
+  if (length(d)) {
+    M  <- as.matrix(pretty_df[, d, drop = FALSE])
+    lv <- sub(paste0("^", v, "_"), "", d)
+    pretty_df[[v]] <- factor(lv[max.col(M, ties.method = "first")],
+                             levels = levels(df_smote[[v]]))
+    pretty_df[d] <- NULL
+  }
+}
+
+# Reorder to match the original data’s columns and preview
+pretty_df <- pretty_df[, orig, drop = FALSE]
+head(as.data.frame(pretty_df))
 
 
 
