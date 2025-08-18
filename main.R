@@ -139,10 +139,7 @@ df_nor$loan_amnt <- normalize(df_nor$loan_amnt)
 ############################################## 6
 
 df_unique <- df
-
 df_unique <- distinct(df, person_education  ,.keep_all = TRUE)
-
-
 
 
 ############################################### 7
